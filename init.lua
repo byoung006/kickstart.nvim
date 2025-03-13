@@ -49,6 +49,30 @@ vim.opt.showmode = false
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
+-- vim.g.clipboard = {
+--   name = 'myClipboard',
+--   copy = {
+--     ['+'] = { 'tmux', 'load-buffer', '-' },
+--     ['*'] = { 'tmux', 'load-buffer', '-' },
+--   },
+--   paste = {
+--     ['+'] = { 'tmux', 'save-buffer', '-' },
+--     ['*'] = { 'tmux', 'save-buffer', '-' },
+--   },
+--   cache_enabled = 1,
+-- }
+vim.g.clipboard = {
+  name = 'xclipClipboard',
+  copy = {
+    ['+'] = { 'xclip', '-selection', 'clipboard', '-i' },
+    ['*'] = { 'xclip', '-selection', 'primary', '-i' },
+  },
+  paste = {
+    ['+'] = { 'xclip', '-selection', 'clipboard', '-o' },
+    ['*'] = { 'xclip', '-selection', 'primary', '-o' },
+  },
+  cache_enabled = 1,
+}
 vim.schedule(function()
   vim.opt.clipboard = 'unnamedplus'
 end)
@@ -115,21 +139,28 @@ vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
 vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 
 -- Keybinds to make split navigation easier.
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+-- vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+-- vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+-- vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+-- vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 -- Jump half pages
 vim.keymap.set('n', '<C-d>', '<C-d>zz')
 vim.keymap.set('n', '<C-u>', '<C-u>zz')
 -- Move visually selected hunks
 vim.keymap.set('v', 'J', ":m '>+1<CR>gv=gv")
 vim.keymap.set('v', 'K', ":m '<-2<CR>gv=gv")
+
+vim.keymap.set('n', 'H', '0')
+vim.keymap.set('n', 'L', '$')
+
 -- Tab Control
 vim.keymap.set('n', '<C-n>', ':tabnext<CR>', { desc = 'Move to next tab' })
 vim.keymap.set('n', '<C-m>', ':tabprevious<CR>', { desc = 'Move to previous tab' })
 
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = '[O]pen [E]rror in float' })
+
+vim.keymap.set('n', '<C-j>', '<cmd> lua vim.diagnostic.goto_next()<CR>', { desc = '[G]o to [N]ext error' })
+vim.keymap.set('n', '<C-k>', '<cmd> lua vim.diagnostic.goto_prev()<CR>', { desc = '[G]o to [P]revious error' })
 
 -- [[ Custom Terminal setup ]]
 local job_id = 0
@@ -206,6 +237,31 @@ require('lazy').setup({
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
       },
+    },
+  },
+  {
+    {
+      'zbirenbaum/copilot.lua',
+      cmd = 'Copilot',
+      event = 'InsertEnter',
+      config = function()
+        require('copilot').setup {
+          suggestion = {
+            enabled = true,
+            auto_trigger = true,
+            hide_during_completion = false,
+            debounce = 25,
+            keymap = {
+              accept = '<leader>y',
+              accept_word = false,
+              accept_line = '<Tab>',
+              next = false,
+              prev = false,
+              dismiss = '<leader>n',
+            },
+          },
+        }
+      end,
     },
   },
 
@@ -399,7 +455,31 @@ require('lazy').setup({
             mode = mode or 'n'
             vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc, noremap = true, silent = true })
           end
+          vim.keymap.set('n', 'gdd', function()
+            local params = vim.lsp.util.make_position_params()
+            vim.lsp.buf.definition(params, function(err, result, ctx)
+              if err or not result then
+                vim.notify(err and ('Error: ' .. err) or 'Definition not found', vim.log.levels.WARN)
+                return
+              end
 
+              if vim.tbl_islist(result) and #result > 0 then
+                local location = result[1] -- Take the first definition if multiple are returned
+                if location.uri and location.range then
+                  local file = vim.uri_to_fname(location.uri)
+                  local line = location.range.start.line + 1
+                  local col = location.range.start.character + 1
+
+                  vim.cmd('tabnew ' .. file)
+                  vim.api.nvim_win_set_cursor(0, { line, col })
+                else
+                  vim.notify('Invalid definition location', vim.log.levels.WARN)
+                end
+              else
+                vim.notify('Definition not found', vim.log.levels.WARN)
+              end
+            end, ctx)
+          end, { desc = '[G]oto [D]efinition in [D]ifferent Tab' })
           -- Jump to the definition of the word under your cursor.
           --  This is where a variable was first declared, or where a function is defined, etc.
           --  To jump back, press <C-t>.
@@ -582,7 +662,7 @@ require('lazy').setup({
 
       require('mason-lspconfig').setup {
         ensure_installed = {
-          'eslint@4.8.0',
+          'ts_ls',
         }, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
         automatic_installation = true,
         handlers = {
@@ -884,6 +964,7 @@ require('lazy').setup({
   -- [[ Custom plugin management ]]
   require('custom.plugins.float-term').setup(),
   require 'custom.plugins.harpoon',
+  require 'custom.plugins.copilot',
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
