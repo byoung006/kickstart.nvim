@@ -38,7 +38,7 @@ vim.opt.tabstop = 4
 vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
-
+-- add in smart indenting and create
 vim.opt.smartindent = true
 vim.opt.termguicolors = true
 
@@ -61,21 +61,22 @@ vim.opt.showmode = false
 --   },
 --   cache_enabled = 1,
 -- }
-vim.g.clipboard = {
-  name = 'xclipClipboard',
-  copy = {
-    ['+'] = { 'xclip', '-selection', 'clipboard', '-i' },
-    ['*'] = { 'xclip', '-selection', 'primary', '-i' },
-  },
-  paste = {
-    ['+'] = { 'xclip', '-selection', 'clipboard', '-o' },
-    ['*'] = { 'xclip', '-selection', 'primary', '-o' },
-  },
-  cache_enabled = 1,
-}
 vim.schedule(function()
   vim.opt.clipboard = 'unnamedplus'
 end)
+
+-- vim.g.clipboard = {
+--   name = 'xclipClipboard',
+--   copy = {
+--     ['+'] = { 'xclip', '-selection', 'clipboard', '-i' },
+--     ['*'] = { 'xclip', '-selection', 'primary', '-i' },
+--   },
+--   paste = {
+--     ['+'] = { 'xclip', '-selection', 'clipboard', '-o' },
+--     ['*'] = { 'xclip', '-selection', 'primary', '-o' },
+--   },
+--   cache_enabled = 1,
+-- }
 
 -- Enable break indent
 vim.opt.breakindent = true
@@ -141,8 +142,8 @@ vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 -- Keybinds to make split navigation easier.
 -- vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
 -- vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
--- vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
--- vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+-- vim.keymap.set('n', '<C><Up>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+-- vim.keymap.set('n', '<C><Down>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 -- Jump half pages
 vim.keymap.set('n', '<C-d>', '<C-d>zz')
 vim.keymap.set('n', '<C-u>', '<C-u>zz')
@@ -241,10 +242,46 @@ require('lazy').setup({
   },
   {
     {
+      'stevearc/oil.nvim',
+      ---@module 'oil'
+      ---@type oil.SetupOpts
+      opts = {
+        preview_win = {
+          win_options = {
+            horizontal = true,
+            split = 'botright',
+          },
+        },
+      },
+      -- Optional dependencies
+      dependencies = { 'nvim-tree/nvim-web-devicons' }, -- use if you prefer nvim-web-devicons
+      -- Lazy loading is not recommended because it is very tricky to make it work correctly in all situations.
+      lazy = false,
+
+      config = function()
+        require('oil').setup {
+          columns = { 'icon' },
+          default_file_explorer = true,
+          view_options = { show_hidden = true },
+          keymaps = {
+            ['<CR>'] = { 'actions.select', mode = 'n' },
+            ['<C-v>'] = { 'actions.select', opts = { vertical = true } },
+            ['<C-h>'] = { 'actions.select', opts = { horizontal = true } },
+            ['<C-t>'] = { 'actions.select', opts = { tab = true } },
+            ['<Esc>'] = { 'actions.close', mode = 'n' },
+          },
+        }
+        vim.keymap.set('n', '<leader>a', '<cmd>Oil<CR>', { desc = 'Open [O]il file explorer' })
+      end,
+    },
+  },
+  {
+    {
       'zbirenbaum/copilot.lua',
       cmd = 'Copilot',
       event = 'InsertEnter',
       config = function()
+        local copilotPanel = require 'copilot.panel'
         require('copilot').setup {
           suggestion = {
             enabled = true,
@@ -252,12 +289,16 @@ require('lazy').setup({
             hide_during_completion = false,
             debounce = 25,
             keymap = {
-              accept = '<leader>y',
+              accept = '<Tab>',
               accept_word = false,
               accept_line = '<Tab>',
               next = false,
               prev = false,
-              dismiss = '<leader>n',
+              dismiss = '<Esc>',
+            },
+            copilotPanel.open {
+              position = 'bottom',
+              ratio = 0.3,
             },
           },
         }
@@ -753,6 +794,7 @@ require('lazy').setup({
       },
       'saadparwaiz1/cmp_luasnip',
       'hrsh7th/cmp-nvim-lsp',
+      'github/copilot.vim',
       'hrsh7th/cmp-path',
       'hrsh7th/cmp-nvim-lsp-signature-help',
     },
@@ -784,8 +826,8 @@ require('lazy').setup({
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
           ['<CR>'] = cmp.mapping.confirm { select = true },
-          ['<Tab>'] = cmp.mapping.select_next_item(),
-          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          -- ['<Tab>'] = cmp.mapping.select_next_item(),
+          -- ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
@@ -957,14 +999,13 @@ require('lazy').setup({
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
-  require 'kickstart.plugins.neo-tree',
+  -- require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.bufferline',
 
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
   -- [[ Custom plugin management ]]
   require('custom.plugins.float-term').setup(),
   require 'custom.plugins.harpoon',
-  require 'custom.plugins.copilot',
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
