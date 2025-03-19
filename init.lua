@@ -49,6 +49,7 @@ vim.opt.showmode = false
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
+--  TMUX seems to work currently, just keeping this around incase something breaks
 -- vim.g.clipboard = {
 --   name = 'myClipboard',
 --   copy = {
@@ -120,6 +121,8 @@ vim.opt.scrolloff = 10
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('i', 'jk', '<Esc>')
 vim.keymap.set('i', 'kj', '<Esc>')
+vim.keymap.set('n', 'N', 'Nzzzv')
+vim.keymap.set('n', 'n', 'nzzzv')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 -- vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float(0, { scope = 'cursor' }) , { desc = 'Open diagnostic [Q]uickfix list' })
@@ -160,8 +163,10 @@ vim.keymap.set('n', '<C-m>', ':tabprevious<CR>', { desc = 'Move to previous tab'
 
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = '[O]pen [E]rror in float' })
 
-vim.keymap.set('n', '<C-j>', '<cmd> lua vim.diagnostic.goto_next()<CR>', { desc = '[G]o to [N]ext error' })
-vim.keymap.set('n', '<C-k>', '<cmd> lua vim.diagnostic.goto_prev()<CR>', { desc = '[G]o to [P]revious error' })
+vim.keymap.set('n', '<C-j>', '<cmd> lua vim.diagnostic.goto_next()<CR>zz', { desc = '[G]o to [N]ext error' })
+vim.keymap.set('n', '<C-k>', '<cmd> lua vim.diagnostic.goto_prev()<CR>zz', { desc = '[G]o to [P]revious error' })
+vim.keymap.set('v', '<', '<gv', { desc = 'Indent left' })
+vim.keymap.set('v', '>', '>gv', { desc = 'Indent left' })
 
 -- [[ Custom Terminal setup ]]
 local job_id = 0
@@ -269,6 +274,7 @@ require('lazy').setup({
             ['<C-h>'] = { 'actions.select', opts = { horizontal = true } },
             ['<C-t>'] = { 'actions.select', opts = { tab = true } },
             ['<Esc>'] = { 'actions.close', mode = 'n' },
+            ['q'] = { 'actions.close', mode = 'n' },
           },
         }
         vim.keymap.set('n', '<leader>a', '<cmd>Oil<CR>', { desc = 'Open [O]il file explorer' })
@@ -472,7 +478,9 @@ require('lazy').setup({
       -- Automatically install LSPs and related tools to stdpath for Neovim
       -- Mason must be loaded before its dependents so we need to set it up here.
       -- NOTE: `opts = {}` is the same as calling `require('mason').setup({})`
-      { 'williamboman/mason.nvim', opts = {} },
+      { 'williamboman/mason.nvim', opts = {
+        ensure_installed = { 'js-debug-adapter' },
+      } },
       'williamboman/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
@@ -784,12 +792,12 @@ require('lazy').setup({
           -- `friendly-snippets` contains a variety of premade snippets.
           --    See the README about individual language/framework/plugin snippets:
           --    https://github.com/rafamadriz/friendly-snippets
-          -- {
-          --   'rafamadriz/friendly-snippets',
-          --   config = function()
-          --     require('luasnip.loaders.from_vscode').lazy_load()
-          --   end,
-          -- },
+          {
+            'rafamadriz/friendly-snippets',
+            config = function()
+              require('luasnip.loaders.from_vscode').lazy_load()
+            end,
+          },
         },
       },
       'saadparwaiz1/cmp_luasnip',
@@ -803,7 +811,6 @@ require('lazy').setup({
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
       luasnip.config.setup {}
-
       cmp.setup {
         snippet = {
           expand = function(args)
@@ -995,7 +1002,7 @@ require('lazy').setup({
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
-  -- require 'kickstart.plugins.debug',
+  require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
