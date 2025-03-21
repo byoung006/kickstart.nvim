@@ -38,6 +38,9 @@ vim.opt.tabstop = 4
 vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
+vim.opt.swapfile = false
+vim.opt.backup = false
+
 -- add in smart indenting and create
 vim.opt.smartindent = true
 vim.opt.termguicolors = true
@@ -49,35 +52,10 @@ vim.opt.showmode = false
 --  Schedule the setting after `UiEnter` because it can increase startup-time.
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
---  TMUX seems to work currently, just keeping this around incase something breaks
--- vim.g.clipboard = {
---   name = 'myClipboard',
---   copy = {
---     ['+'] = { 'tmux', 'load-buffer', '-' },
---     ['*'] = { 'tmux', 'load-buffer', '-' },
---   },
---   paste = {
---     ['+'] = { 'tmux', 'save-buffer', '-' },
---     ['*'] = { 'tmux', 'save-buffer', '-' },
---   },
---   cache_enabled = 1,
--- }
+--  Keep in mind, this seems to break with gnome-terminal, so use ghostty or terminator
 vim.schedule(function()
   vim.opt.clipboard = 'unnamedplus'
 end)
-
--- vim.g.clipboard = {
---   name = 'xclipClipboard',
---   copy = {
---     ['+'] = { 'xclip', '-selection', 'clipboard', '-i' },
---     ['*'] = { 'xclip', '-selection', 'primary', '-i' },
---   },
---   paste = {
---     ['+'] = { 'xclip', '-selection', 'clipboard', '-o' },
---     ['*'] = { 'xclip', '-selection', 'primary', '-o' },
---   },
---   cache_enabled = 1,
--- }
 
 -- Enable break indent
 vim.opt.breakindent = true
@@ -250,34 +228,38 @@ require('lazy').setup({
       'stevearc/oil.nvim',
       ---@module 'oil'
       ---@type oil.SetupOpts
-      opts = {
-        preview_win = {
-          win_options = {
-            horizontal = true,
-            split = 'botright',
-          },
-        },
-      },
       -- Optional dependencies
       dependencies = { 'nvim-tree/nvim-web-devicons' }, -- use if you prefer nvim-web-devicons
       -- Lazy loading is not recommended because it is very tricky to make it work correctly in all situations.
       lazy = false,
-
       config = function()
+        local oil = require 'oil'
         require('oil').setup {
           columns = { 'icon' },
           default_file_explorer = true,
+          delete_to_trash = true,
           view_options = { show_hidden = true },
+          float = {
+            padding = 2,
+            max_width = 90,
+            max_height = 0,
+          },
+          win_options = {
+            wrap = true,
+            winblend = 0,
+          },
           keymaps = {
             ['<CR>'] = { 'actions.select', mode = 'n' },
             ['<C-v>'] = { 'actions.select', opts = { vertical = true } },
             ['<C-h>'] = { 'actions.select', opts = { horizontal = true } },
-            ['<C-t>'] = { 'actions.select', opts = { tab = true } },
+            ['t'] = { 'actions.select', opts = { tab = true } },
             ['<Esc>'] = { 'actions.close', mode = 'n' },
             ['q'] = { 'actions.close', mode = 'n' },
           },
         }
-        vim.keymap.set('n', '<leader>a', '<cmd>Oil<CR>', { desc = 'Open [O]il file explorer' })
+        vim.keymap.set('n', '<leader>a', function()
+          oil.toggle_float()
+        end, { desc = 'Open [O]il file explorer' })
       end,
     },
   },
@@ -376,6 +358,7 @@ require('lazy').setup({
     branch = '0.1.x',
     dependencies = {
       'nvim-lua/plenary.nvim',
+      'debugloop/telescope-undo.nvim',
       { -- If encountering errors, see telescope-fzf-native README for installation instructions
         'nvim-telescope/telescope-fzf-native.nvim',
 
@@ -409,6 +392,14 @@ require('lazy').setup({
         },
         pickers = {},
         extensions = {
+          ['undo'] = {
+            require('telescope._extensions.undo').undo,
+            side_by_side = true,
+            layout_strategy = 'vertical',
+            layout_config = {
+              preview_height = 0.8,
+            },
+          },
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
           },
@@ -419,6 +410,7 @@ require('lazy').setup({
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
+      pcall(require('telescope').load_extension, 'undo')
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
@@ -432,6 +424,11 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
       vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+      -- Telescop undo picker
+
+      vim.keymap.set('n', '<leader>u', function()
+        require('telescope').extensions.undo.undo()
+      end)
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
