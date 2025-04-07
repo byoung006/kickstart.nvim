@@ -105,6 +105,20 @@ return {
           sourceMaps = true,
           userDataDir = false,
         },
+        {
+          type = 'pwa-node',
+          request = 'launch',
+          name = 'Debug Mocha Tests',
+          trace = true, -- include debugger info
+          runtimeExecutable = 'node',
+          runtimeArgs = {
+            './node_modules/mocha/bin/mocha.js',
+          },
+          rootPath = vim.fn.getcwd(),
+          cwd = vim.fn.getcwd(),
+          console = 'integratedTerminal',
+          internalConsoleOptions = 'neverOpen',
+        },
         -- Divider for the launch.json derived configs
         {
           name = '----- ↓ launch.json configs ↓ -----',

@@ -126,10 +126,10 @@ vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
 vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 
 -- Keybinds to make split navigation easier.
--- vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
--- vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
--- vim.keymap.set('n', '<C><Up>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
--- vim.keymap.set('n', '<C><Down>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+vim.keymap.set('n', '<M-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+vim.keymap.set('n', '<M-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 -- Jump half pages
 vim.keymap.set('n', '<C-d>', '<C-d>zz')
 vim.keymap.set('n', '<C-u>', '<C-u>zz')
@@ -274,28 +274,186 @@ require('lazy').setup({
       cmd = 'Copilot',
       event = 'InsertEnter',
       config = function()
-        local copilotPanel = require 'copilot.panel'
         require('copilot').setup {
+          panel = {
+            position = 'bottom',
+          },
           suggestion = {
             enabled = true,
             auto_trigger = true,
             hide_during_completion = false,
             debounce = 25,
             keymap = {
-              accept = '<Tab>',
+              accept = '<C-y>',
               accept_word = false,
               accept_line = '<Tab>',
               next = false,
               prev = false,
               dismiss = '<Esc>',
             },
-            copilotPanel.open {
-              position = 'bottom',
-              ratio = 0.3,
-            },
           },
         }
       end,
+    },
+  },
+  {
+    {
+      'folke/which-key.nvim',
+      optional = true,
+      opts = {
+        spec = {
+          { '<leader>c', group = 'ai' },
+          { '<leader>cg', group = 'Copilot Chat' },
+        },
+      },
+    },
+
+    {
+      'CopilotC-Nvim/CopilotChat.nvim',
+      branch = 'main',
+      -- version = "v3.3.0", -- Use a specific version to prevent breaking changes
+      dependencies = {
+        { 'nvim-telescope/telescope.nvim' }, -- Use telescope for help actions
+        { 'nvim-lua/plenary.nvim' },
+      },
+
+      opts = {
+        question_header = '## User ',
+        answer_header = '## Copilot ',
+        error_header = '## Error ',
+        window = {
+          layout = 'horizontal', -- 'vertical', 'horizontal', 'float', 'replace'
+          width = 0.5, -- fractional width of parent, or absolute width in columns when > 1
+          height = 0.5, -- fractional height of parent, or absolute height in rows when > 1
+        },
+        prompts = {
+          -- Code related prompts
+          Explain = 'Please explain how the following code works.',
+          Review = 'Please review the following code and provide suggestions for improvement.',
+          Tests = 'Please explain how the selected code works, then generate unit tests for it.',
+          Refactor = 'Please refactor the following code to improve its clarity and readability.',
+          FixCode = 'Please fix the following code to make it work as intended.',
+          FixError = 'Please explain the error in the following text and provide a solution.',
+          BetterNamings = 'Please provide better names for the following variables and functions.',
+          Documentation = 'Please provide documentation for the following code.',
+          SwaggerApiDocs = 'Please provide documentation for the following API using Swagger.',
+          SwaggerJsDocs = 'Please write JSDoc for the following API using Swagger.',
+          -- Text related prompts
+          Summarize = 'Please summarize the following text.',
+          Spelling = 'Please correct any grammar and spelling errors in the following text.',
+          Wording = 'Please improve the grammar and wording of the following text.',
+          Concise = 'Please rewrite the following text to make it more concise.',
+        }, -- Define prompts or import if needed
+        mappings = {
+          complete = {
+            detail = 'Use @<Tab> or /<Tab> for options.',
+            insert = '<Tab>',
+          },
+          close = {
+            normal = 'q',
+            insert = '<C-c>',
+          },
+          reset = {
+            normal = '<C-x>',
+            insert = '<C-x>',
+          },
+          submit_prompt = {
+            normal = '<CR>',
+            insert = '<C-CR>',
+          },
+          accept_diff = {
+            normal = '<C-y>',
+            insert = '<C-y>',
+          },
+          show_help = {
+            normal = 'g?',
+          },
+        },
+      },
+
+      config = function(_, opts)
+        require('custom.plugins.copilot-chat').setup(opts)
+      end,
+      event = 'VeryLazy',
+      keys = {
+        -- Show prompts actions with telescope
+        {
+          '<leader>cp',
+          function()
+            require('CopilotChat').select_prompt {
+              context = {
+                'buffers',
+              },
+            }
+          end,
+          desc = 'CopilotChat - Prompt actions',
+        },
+        {
+          '<leader>cp',
+          function()
+            require('CopilotChat').select_prompt()
+          end,
+          mode = 'x',
+          desc = 'CopilotChat - Prompt actions',
+        },
+        -- Code related commands
+        { '<leader>ce', '<cmd>CopilotChatExplain<cr>', desc = 'CopilotChat - Explain code' },
+        { '<leader>cgt', '<cmd>CopilotChatTests<cr>', desc = 'CopilotChat - Generate tests' },
+        { '<leader>cr', '<cmd>CopilotChatReview<cr>', desc = 'CopilotChat - Review code' },
+        { '<leader>cR', '<cmd>CopilotChatRefactor<cr>', desc = 'CopilotChat - Refactor code' },
+        { '<leader>cn', '<cmd>CopilotChatBetterNamings<cr>', desc = 'CopilotChat - Better Naming' },
+        -- Chat with Copilot in visual mode
+        {
+          '<leader>cv',
+          ':CopilotChatVisual',
+          mode = 'x',
+          desc = 'CopilotChat - Open in vertical split',
+        },
+        {
+          '<leader>cx',
+          ':CopilotChatInline',
+          mode = 'x',
+          desc = 'CopilotChat - Inline chat',
+        },
+        -- Custom input for CopilotChat
+        {
+          '<leader>ci',
+          function()
+            local input = vim.fn.input 'Ask Copilot: '
+            if input ~= '' then
+              vim.cmd('CopilotChat ' .. input)
+            end
+          end,
+          desc = 'CopilotChat - Ask input',
+        },
+        -- Generate commit message based on the git diff
+        {
+          '<leader>cm',
+          '<cmd>CopilotChatCommit<cr>',
+          desc = 'CopilotChat - Generate commit message for all changes',
+        },
+        -- Quick chat with Copilot
+        {
+          '<leader>cq',
+          function()
+            local input = vim.fn.input 'Quick Chat: '
+            if input ~= '' then
+              vim.cmd('CopilotChatBuffer ' .. input)
+            end
+          end,
+          desc = 'CopilotChat - Quick chat',
+        },
+        -- Fix the issue with diagnostic
+        { '<leader>cf', '<cmd>CopilotChatFixError<cr>', desc = 'CopilotChat - Fix Diagnostic' },
+        -- Clear buffer and chat history
+        { '<leader>cr', '<cmd>CopilotChatReset<cr>', desc = 'CopilotChat - Clear buffer and chat history' },
+        -- Toggle Copilot Chat Vsplit
+        { '<leader>ct', '<cmd>CopilotChatToggle<cr>', desc = 'CopilotChat - Toggle' },
+        -- Copilot Chat Models
+        { '<leader>c?', '<cmd>CopilotChatModels<cr>', desc = 'CopilotChat - Select Models' },
+        -- Copilot Chat Agents
+        { '<leader>ca', '<cmd>CopilotChatAgents<cr>', desc = 'CopilotChat - Select Agents' },
+      },
     },
   },
 
@@ -1015,6 +1173,7 @@ require('lazy').setup({
   -- [[ Custom plugin management ]]
   require('custom.plugins.float-term').setup(),
   require 'custom.plugins.harpoon',
+  require 'custom.plugins.copilot-chat',
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the

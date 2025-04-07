@@ -8,7 +8,6 @@ This config has been given more of my time than my dog, my wife, and probably go
 
 ...take a look if you're a member of the 9th circle of vim. 
 
-> **NOTE**
 > [!NOTE]
 > See [Install Recipes](#Install-Recipes) for additional Windows and Linux specific notes
 > and quick install snippets
